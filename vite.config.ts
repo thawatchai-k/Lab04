@@ -20,5 +20,11 @@ export default defineConfig({
       },
     }),
     tsconfigPaths(),
-  ],
+  ],  
+  // ตั่งต่าการ Import part files
+  resolve: {
+    alias: {
+      '~': '/app',  // กำหนด alias ~ ให้ชี้ไปที่โฟลเดอร์ app
+    },
+  },
 });
