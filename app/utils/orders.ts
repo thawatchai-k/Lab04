@@ -6,7 +6,7 @@ export const orders = [
       "confirmDate": "31/01/2025 12:40:00",
       "orderStatus": "The Haunted Manor",
       "priceTotal": "1890",
-      "customer": "บ๊วยควยถอก",
+      "customer": "บ๊วยสุดหล่อมากกกกก",
     },
     {
       "orderNo": "ORD002",
