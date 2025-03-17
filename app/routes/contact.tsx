@@ -9,8 +9,8 @@ function MyContact () {
         <div className="m-5">
             <h1 className="text-xl font-bold p-2 mb-5 dark:text-white border-s-8 border-teal-600">ติดต่อฉัน</h1>
             <div className="flex flex-row justify-center">
-            ชุมพล โมฆรัตน์<br/>
-            Chumpol Mokarat<br/>
+            ธวัชชัย ครุธนวม<br/>
+            Thawatchai Krutnaum<br/>
             </div>
         </div>
         <MyFooter />

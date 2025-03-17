@@ -1,5 +1,6 @@
-import MyMenu from "./templates/mymenu";
+
 import MyFooter from "./templates/myfooter";
+import MyMenu from "./templates/mymenu";
 import { useState } from "react";
 
 export default function MyCalculator() {

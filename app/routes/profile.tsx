@@ -4,7 +4,7 @@ function MyProfile() {
             <div className="p-5 m-5 border-2 border-teal-500 rounded">
                 <h1 className="text-xl font-bold text-amber-700">My Profile</h1>
                 <p>
-                    Name: Chumpol Mokarat<br />
+                    Name: Thawatchai Krutnaum<br />
                     Student Code: 026799999999-9<br />
                     Department: Information Technology
                 </p>
