@@ -28,10 +28,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const petsCollection = collection(db, "pets");
     const petsSnapshot = await getDocs(petsCollection);
 
-    const petsData = petsSnapshot.docs.map((doc) => ({
-      id: doc.id, // 🔹 ใช้ `id` (ตัวพิมพ์เล็ก) ตรงกับ Firestore ID
-      ...(doc.data() as Pet),
-    }));
+    const petsData = petsSnapshot.docs.map((doc) => {
+      const petData = doc.data() as Pet;
+      return {
+        ...petData, // ดึงข้อมูล pet ทั้งหมด
+        petID: doc.id, // กำหนด petID จาก Firestore (ต้องทำหลังจาก spread)
+      };
+    });
 
     return json<LoaderData>({ pets: petsData });
   } catch (error) {
@@ -48,11 +51,11 @@ export default function MyPetList() {
   const [error, setError] = useState<string | null>(loaderError || null);
   const navigate = useNavigate();
 
-  const handleDeletePet = async (id: string) => {
+  const handleDeletePet = async (petID: string) => {
     try {
       if (confirm("Are you sure you want to delete this pet?")) {
-        await deleteDoc(doc(db, "pets", id)); // 🔹 ใช้ `id` แทน `petID`
-        setPets((prevPets) => prevPets.filter((pet) => pet.petID !== id)); // อัปเดต state
+        await deleteDoc(doc(db, "pets", petID)); // 🔹 ใช้ `id` แทน `petID`
+        setPets((prevPets) => prevPets.filter((pet) => pet.petID !== petID)); // อัปเดต state
       }
     } catch (error) {
       console.error("Error deleting pet:", error);
