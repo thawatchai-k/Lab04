@@ -1,14 +1,17 @@
-import { Form, useActionData, useNavigation, json } from "@remix-run/react";
-import React, { useState, useRef } from "react";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+/*ธวัชชัย ครุธนวม 026740491802-6*/
+// ===== Import Dependencies =====
+import { Form, useActionData, useNavigation, json } from "@remix-run/react"; // Remix utilities สำหรับ form และการนำทาง
+import React, { useState, useRef } from "react"; // React hooks
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; // Firebase Storage สำหรับอัพโหลดไฟล์
 import {
   collection,
   addDoc,
   serverTimestamp,
   updateDoc,
-} from "firebase/firestore";
-import { storage, db } from "~/lib/firebase";
+} from "firebase/firestore"; // Firestore สำหรับเพิ่มเอกสาร
+import { storage, db } from "~/lib/firebase"; // เชื่อมต่อ Firebase config
 
+// ===== TypeScript Interface สำหรับข้อมูล Pet =====
 interface PetData {
   petID?: string;
   petName: string;
@@ -22,22 +25,32 @@ interface PetData {
   petPhoto: string;
 }
 
+// ===== Functional Component =====
 const MyPetForm = () => {
+  // ======= ใช้ ActionData เพื่อตรวจสอบ error/success =======
   const actionData = useActionData<{ error?: string; success?: boolean }>();
+
+  // ======= ใช้ Navigation เพื่อตรวจสอบสถานะฟอร์ม =======
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null); // เพิ่ม useRef สำหรับฟอร์ม
+  // ======= State สำหรับจัดการรูปภาพและข้อมูล =======
+  const [imagePreview, setImagePreview] = useState<string | null>(null); // Preview รูป
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null); // URL หลัง upload
+  const [isUploading, setIsUploading] = useState(false); // สถานะ upload
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // Error Message (ยังไม่ใช้จริงจัง)
+
+  // ======= Refs =======
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref สำหรับ input file
+  const formRef = useRef<HTMLFormElement>(null); // Ref สำหรับฟอร์ม (ใช้ reset)
+
+  // ======= Phone Number State & Validation =======
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
+  // ======= จัดการการเปลี่ยนแปลงหมายเลขโทรศัพท์ =======
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 10); // ลบตัวอักษรที่ไม่ใช่ตัวเลข
+    const value = e.target.value.replace(/\D/g, "").slice(0, 10); // เอาเฉพาะตัวเลขสูงสุด 10 หลัก
     setPhoneNumber(value);
     setPhoneError(
       value.length > 0 && value.length < 10
@@ -46,20 +59,25 @@ const MyPetForm = () => {
     );
   };
 
+  // ======= จัดรูปแบบหมายเลขโทรศัพท์ (XXX-XXX-XXXX) =======
   const formatPhoneNumber = (value: string) => {
     if (value.length <= 3) return value;
     if (value.length <= 6) return `${value.slice(0, 3)}-${value.slice(3)}`;
     return `${value.slice(0, 3)}-${value.slice(3, 6)}-${value.slice(6)}`;
   };
 
+  // ======= ล้างรูปภาพที่เลือก =======
   const handleClearImage = () => {
     setImagePreview(null);
     setUploadedImageUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // ======= จัดการ Submit ฟอร์ม =======
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    // ===== สร้าง Object PetData =====
     const petData: PetData = {
       petName: event.currentTarget.petName.value,
       birthDate: event.currentTarget.birthDate.value,
@@ -71,19 +89,22 @@ const MyPetForm = () => {
       ownerPhone: phoneNumber,
       petPhoto: uploadedImageUrl || "",
     };
+
     try {
+      // ===== เพิ่มข้อมูล Pet ไปยัง Firestore =====
       const docRef = await addDoc(collection(db, "pets"), petData);
+
+      // ===== อัปเดตเอกสาร เพิ่ม petID =====
       await updateDoc(docRef, {
         petID: docRef.id,
       });
-      // await addDoc(collection(db, "pets"), { ...petData, petID });
-      // console.log("Pet added successfully!");
 
-      formRef.current?.reset(); // รีเซ็ตฟอร์ม
-      setImagePreview(null); // รีเซ็ตภาพตัวอย่าง
-      setUploadedImageUrl(null); // รีเซ็ต URL ภาพ
-      setPhoneNumber(""); // รีเซ็ตหมายเลขโทรศัพท์
-      setPhoneError(null); // รีเซ็ตข้อผิดพลาดหมายเลขโทรศัพท์
+      // ===== Reset Form และ State ต่าง ๆ =====
+      formRef.current?.reset();
+      setImagePreview(null);
+      setUploadedImageUrl(null);
+      setPhoneNumber("");
+      setPhoneError(null);
     } catch (error) {
       console.error("Error adding pet:", error);
     }
@@ -95,6 +116,7 @@ const MyPetForm = () => {
         Add New Pet
       </h1>
 
+      {/* ====== แสดง Error หรือ Success Message ====== */}
       {actionData?.error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {actionData.error}
@@ -106,25 +128,27 @@ const MyPetForm = () => {
         </div>
       )}
 
+      {/* ====== ฟอร์มสำหรับกรอกข้อมูล ====== */}
       <Form
         method="post"
         className="space-y-6"
         encType="multipart/form-data"
         onSubmit={handleSubmit}
+        ref={formRef} // ใช้สำหรับ reset
       >
         <input type="hidden" name="imageUrl" value={uploadedImageUrl || ""} />
 
+        {/* ======= ส่วนกรอกข้อมูลสัตว์ ======= */}
         <div className="bg-blue-50 p-4 rounded-lg">
           <h2 className="text-xl font-semibold mb-4 text-blue-800">
             Pet Information
           </h2>
 
+          {/* ======= ฟิลด์ข้อมูลสัตว์ ======= */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Pet Name */}
             <div>
-              <label
-                htmlFor="petName"
-                className="block mb-2 font-medium text-gray-700"
-              >
+              <label htmlFor="petName" className="block mb-2 font-medium text-gray-700">
                 Pet Name
               </label>
               <input
@@ -136,11 +160,9 @@ const MyPetForm = () => {
               />
             </div>
 
+            {/* Birth Date */}
             <div>
-              <label
-                htmlFor="birthDate"
-                className="block mb-2 font-medium text-gray-700"
-              >
+              <label htmlFor="birthDate" className="block mb-2 font-medium text-gray-700">
                 Birth Date
               </label>
               <input
@@ -152,11 +174,9 @@ const MyPetForm = () => {
               />
             </div>
 
+            {/* Pet Category */}
             <div>
-              <label
-                htmlFor="petCategory"
-                className="block mb-2 font-medium text-gray-700"
-              >
+              <label htmlFor="petCategory" className="block mb-2 font-medium text-gray-700">
                 Pet Category
               </label>
               <select
@@ -174,39 +194,24 @@ const MyPetForm = () => {
               </select>
             </div>
 
+            {/* Gender */}
             <div>
-              <label className="block mb-2 font-medium text-gray-700">
-                Gender
-              </label>
+              <label className="block mb-2 font-medium text-gray-700">Gender</label>
               <div className="flex items-center space-x-4">
                 <label className="flex items-center text-gray-800">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="Male"
-                    className="mr-2"
-                    required
-                  />
+                  <input type="radio" name="gender" value="Male" className="mr-2" required />
                   Male
                 </label>
                 <label className="flex items-center text-gray-800">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="Female"
-                    className="mr-2"
-                    required
-                  />
+                  <input type="radio" name="gender" value="Female" className="mr-2" required />
                   Female
                 </label>
               </div>
             </div>
 
+            {/* Description */}
             <div className="md:col-span-2">
-              <label
-                htmlFor="description"
-                className="block mb-2 font-medium text-gray-700"
-              >
+              <label htmlFor="description" className="block mb-2 font-medium text-gray-700">
                 Description
               </label>
               <textarea
@@ -218,11 +223,9 @@ const MyPetForm = () => {
               />
             </div>
 
+            {/* Owner Name */}
             <div className="md:col-span-2">
-              <label
-                htmlFor="ownerName"
-                className="block mb-2 font-medium text-gray-700"
-              >
+              <label htmlFor="ownerName" className="block mb-2 font-medium text-gray-700">
                 Owner Name
               </label>
               <input
@@ -233,11 +236,10 @@ const MyPetForm = () => {
                 required
               />
             </div>
+
+            {/* Owner Email */}
             <div className="md:col-span-2">
-              <label
-                htmlFor="ownerEmail"
-                className="block mb-2 font-medium text-gray-700"
-              >
+              <label htmlFor="ownerEmail" className="block mb-2 font-medium text-gray-700">
                 Owner Email
               </label>
               <input
@@ -249,11 +251,9 @@ const MyPetForm = () => {
               />
             </div>
 
+            {/* Owner Phone */}
             <div className="md:col-span-2">
-              <label
-                htmlFor="ownerPhone"
-                className="block mb-2 font-medium text-gray-700"
-              >
+              <label htmlFor="ownerPhone" className="block mb-2 font-medium text-gray-700">
                 Owner Phone
               </label>
               <input
@@ -273,6 +273,7 @@ const MyPetForm = () => {
           </div>
         </div>
 
+        {/* ======= ปุ่ม Submit และ Reset ======= */}
         <div className="flex justify-center pt-4">
           <button
             type="submit"
@@ -297,4 +298,5 @@ const MyPetForm = () => {
     </div>
   );
 };
+
 export default MyPetForm;
