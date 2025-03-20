@@ -1,3 +1,4 @@
+/*ธวัชชัย ครุธนวม 026740491802-6*/
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, Link } from "@remix-run/react";

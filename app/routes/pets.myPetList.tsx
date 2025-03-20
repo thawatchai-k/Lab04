@@ -1,3 +1,4 @@
+/*ธวัชชัย ครุธนวม 026740491802-6*/
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Link, useLoaderData, useNavigate } from "@remix-run/react";
@@ -65,22 +66,26 @@ export default function MyPetList() {
 
       {error && <p className="text-red-500">{error}</p>}
 
-      {pets.length === 0 ? (
+      {/* กรณียังโหลดข้อมูลอยู่ */}
+      {loading ? (
+        <p className="text-center text-gray-500">Loading pets...</p>
+      ) : pets.length === 0 ? ( // กรณีไม่มีข้อมูล
         <p className="text-center text-gray-500">No pets available.</p>
       ) : (
+        // ตารางแสดงข้อมูล
         <div className="overflow-x-auto shadow-md rounded-lg">
           <table className="min-w-full bg-white">
             <thead className="bg-gray-800">
               <tr>
-                <th className="py-3 px-4 text-left">Photo</th>
-                <th className="py-3 px-4 text-left">Name</th>
-                <th className="py-3 px-4 text-left">Category</th>
-                <th className="py-3 px-4 text-left">Gender</th>
-                <th className="py-3 px-4 text-left">Birth Date</th>
-                <th className="py-3 px-4 text-left">Description</th>
-                <th className="py-3 px-4 text-left">Owner</th>
-                <th className="py-3 px-4 text-left">Email</th>
-                <th className="py-3 px-4 text-left">Actions</th>
+                <th className="py-3 px-4 text-left text-white">Photo</th>
+                <th className="py-3 px-4 text-left text-white">Name</th>
+                <th className="py-3 px-4 text-left text-white">Category</th>
+                <th className="py-3 px-4 text-left text-white">Gender</th>
+                <th className="py-3 px-4 text-left text-white">Birth Date</th>
+                <th className="py-3 px-4 text-left text-white">Description</th>
+                <th className="py-3 px-4 text-left text-white">Owner</th>
+                <th className="py-3 px-4 text-left text-white">Email</th>
+                <th className="py-3 px-4 text-left text-white">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800 bg-gray-800">
@@ -96,6 +101,7 @@ export default function MyPetList() {
                         />
                       </Link>
                     ) : (
+                      // กรณีไม่มีรูป
                       <div className="h-16 w-16 bg-gray-200 flex items-center justify-center">
                         <span className="text-gray-500">No image</span>
                       </div>
@@ -116,6 +122,7 @@ export default function MyPetList() {
                   <td className="py-4 px-4">{pet.ownerName}</td>
                   <td className="py-4 px-4">{pet.ownerEmail}</td>
                   <td className="py-4 px-4">
+                    {/* ปุ่มลบ */}
                     <button
                       onClick={() => handleDeletePet(pet.petID)}
                       className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
