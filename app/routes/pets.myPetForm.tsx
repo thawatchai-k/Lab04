@@ -1,13 +1,7 @@
 import { Form, useActionData, useNavigation, json } from "@remix-run/react";
 import React, { useState, useRef } from "react";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { storage, db } from "~/lib/firebase";
+import { collection, addDoc, updateDoc } from "firebase/firestore";
+import { db } from "~/lib/firebase";
 
 interface PetData {
   petID?: string;
@@ -29,15 +23,14 @@ const MyPetForm = () => {
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null); // เพิ่ม useRef สำหรับฟอร์ม
+  const formRef = useRef<HTMLFormElement>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 10); // ลบตัวอักษรที่ไม่ใช่ตัวเลข
+    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
     setPhoneNumber(value);
     setPhoneError(
       value.length > 0 && value.length < 10
@@ -50,12 +43,6 @@ const MyPetForm = () => {
     if (value.length <= 3) return value;
     if (value.length <= 6) return `${value.slice(0, 3)}-${value.slice(3)}`;
     return `${value.slice(0, 3)}-${value.slice(3, 6)}-${value.slice(6)}`;
-  };
-
-  const handleClearImage = () => {
-    setImagePreview(null);
-    setUploadedImageUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -71,21 +58,23 @@ const MyPetForm = () => {
       ownerPhone: phoneNumber,
       petPhoto: uploadedImageUrl || "",
     };
+
     try {
       const docRef = await addDoc(collection(db, "pets"), petData);
-      await updateDoc(docRef, {
-        petID: docRef.id,
-      });
-      // await addDoc(collection(db, "pets"), { ...petData, petID });
-      // console.log("Pet added successfully!");
+      await updateDoc(docRef, { petID: docRef.id });
 
-      formRef.current?.reset(); // รีเซ็ตฟอร์ม
-      setImagePreview(null); // รีเซ็ตภาพตัวอย่าง
-      setUploadedImageUrl(null); // รีเซ็ต URL ภาพ
-      setPhoneNumber(""); // รีเซ็ตหมายเลขโทรศัพท์
-      setPhoneError(null); // รีเซ็ตข้อผิดพลาดหมายเลขโทรศัพท์
+      setSuccessMessage("เพิ่มข้อมูลเรียบร้อยแล้ว! 🎉");
+
+      formRef.current?.reset();
+      setImagePreview(null);
+      setUploadedImageUrl(null);
+      setPhoneNumber("");
+      setPhoneError(null);
+
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error("Error adding pet:", error);
+      setErrorMessage("เกิดข้อผิดพลาดในการเพิ่มข้อมูล ❌");
     }
   };
 
@@ -95,25 +84,23 @@ const MyPetForm = () => {
         Add New Pet
       </h1>
 
-      {actionData?.error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {actionData.error}
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          {successMessage}
         </div>
       )}
-      {actionData?.success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-          Pet added successfully!
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {errorMessage}
         </div>
       )}
 
       <Form
+        ref={formRef}
         method="post"
         className="space-y-6"
-        encType="multipart/form-data"
         onSubmit={handleSubmit}
       >
-        <input type="hidden" name="imageUrl" value={uploadedImageUrl || ""} />
-
         <div className="bg-blue-50 p-4 rounded-lg">
           <h2 className="text-xl font-semibold mb-4 text-blue-800">
             Pet Information
@@ -131,7 +118,7 @@ const MyPetForm = () => {
                 type="text"
                 id="petName"
                 name="petName"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
                 required
               />
             </div>
@@ -147,7 +134,7 @@ const MyPetForm = () => {
                 type="date"
                 id="birthDate"
                 name="birthDate"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
                 required
               />
             </div>
@@ -162,7 +149,7 @@ const MyPetForm = () => {
               <select
                 id="petCategory"
                 name="petCategory"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
                 required
               >
                 <option value="">Select a category</option>
@@ -213,23 +200,22 @@ const MyPetForm = () => {
                 id="description"
                 name="description"
                 rows={4}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
                 placeholder="Enter a description about your pet"
               />
             </div>
-
             <div className="md:col-span-2">
               <label
                 htmlFor="ownerName"
                 className="block mb-2 font-medium text-gray-700"
               >
-                Owner Name
+                OwnerName
               </label>
               <input
                 type="text"
                 id="ownerName"
                 name="ownerName"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
                 required
               />
             </div>
@@ -238,17 +224,16 @@ const MyPetForm = () => {
                 htmlFor="ownerEmail"
                 className="block mb-2 font-medium text-gray-700"
               >
-                Owner Email
+                OwnerEmail
               </label>
               <input
                 type="text"
                 id="ownerEmail"
                 name="ownerEmail"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
                 required
               />
             </div>
-
             <div className="md:col-span-2">
               <label
                 htmlFor="ownerPhone"
@@ -263,7 +248,7 @@ const MyPetForm = () => {
                 placeholder="Enter phone number"
                 value={formatPhoneNumber(phoneNumber)}
                 onChange={handlePhoneChange}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
                 required
               />
               {phoneError && (
@@ -276,18 +261,13 @@ const MyPetForm = () => {
         <div className="flex justify-center pt-4">
           <button
             type="submit"
-            disabled={isSubmitting || isUploading || !!phoneError}
+            disabled={isSubmitting || !!phoneError}
             className="px-6 py-3 bg-blue-600 text-white rounded-md"
           >
-            {isSubmitting
-              ? "Submitting..."
-              : isUploading
-              ? "Uploading Image..."
-              : "Submit"}
+            {isSubmitting ? "Submitting..." : "Submit"}
           </button>
           <button
             type="reset"
-            onClick={handleClearImage}
             className="px-6 py-3 ml-4 bg-yellow-400 text-white rounded-md"
           >
             Reset
@@ -297,4 +277,5 @@ const MyPetForm = () => {
     </div>
   );
 };
+
 export default MyPetForm;

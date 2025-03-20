@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, Link } from "@remix-run/react";
 import { db } from "~/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -14,6 +14,7 @@ interface Pet {
   description: string;
   ownerName: string;
   ownerEmail: string;
+  ownerPhone: string;
 }
 
 export async function loader({ params }: LoaderFunctionArgs) {
@@ -23,33 +24,39 @@ export async function loader({ params }: LoaderFunctionArgs) {
       throw new Error("Pet ID is missing");
     }
 
-    // ดึงข้อมูลจาก Firestore
+    // ดึงข้อมูลจาก Firestore โดยใช้ document ID
     const petDoc = await getDoc(doc(db, "pets", params.petID));
 
     if (!petDoc.exists()) {
       throw new Error("Pet not found");
     }
 
-    const petData = petDoc.data();
+    const petData = petDoc.data() as Pet;
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (
+      !petData.petName ||
+      !petData.petCategory ||
+      !petData.gender ||
+      !petData.birthDate ||
+      !petData.description ||
+      !petData.ownerName ||
+      !petData.ownerEmail ||
+      !petData.ownerPhone
+    ) {
+      throw new Error("Incomplete pet data");
+    }
+
     return json({
-      pet: {
-        petID: petData.petID,
-        petName: petData.petName,
-        petPhoto: petData.petPhoto,
-        petCategory: petData.petCategory,
-        gender: petData.gender,
-        birthDate: petData.birthDate,
-        description: petData.description,
-        ownerName: petData.ownerName,
-        ownerEmail: petData.ownerEmail,
-      },
+      pet: petData,
       error: null,
     });
   } catch (error) {
     console.error("Error fetching pet:", error);
     return json({
       pet: null,
-      error: "Failed to load pet details",
+      error:
+        error instanceof Error ? error.message : "Failed to load pet details",
     });
   }
 }
@@ -57,22 +64,20 @@ export async function loader({ params }: LoaderFunctionArgs) {
 export default function PetDetails() {
   const { pet, error } = useLoaderData<typeof loader>();
 
-  // ✅ ตรวจสอบ error ก่อน
   if (error) {
     return <div className="text-red-500 p-4">{error}</div>;
   }
 
-  // ✅ ตรวจสอบ pet ไม่เป็น null/undefined
   if (!pet) {
-    return <div className="text-gray-500 p-4">Pet data not found</div>;
+    return <div className="text-gray-500 p-4">Loading...</div>;
   }
 
-  // ✅ แสดงผลเมื่อมีข้อมูลครบ
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4" id={pet.petID}>
-        {pet.petName}
-      </h1>
+      <Link to="/pets" className="text-blue-500 hover:underline">
+        &larr; Back to Pets
+      </Link>
+      <h1 className="text-2xl font-bold mb-4">{pet.petName}</h1>
       {pet.petPhoto && (
         <img
           src={pet.petPhoto}
@@ -86,6 +91,7 @@ export default function PetDetails() {
       <p>Description: {pet.description}</p>
       <p>Owner: {pet.ownerName}</p>
       <p>Email: {pet.ownerEmail}</p>
+      <p>Phone: {pet.ownerPhone}</p>
     </div>
   );
 }

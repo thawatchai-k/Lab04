@@ -1,15 +1,8 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Link, replace, useLoaderData, useNavigate } from "@remix-run/react";
+import { Link, useLoaderData, useNavigate } from "@remix-run/react";
 import { db } from "~/lib/firebase";
-import {
-  collection,
-  getDocs,
-  deleteDoc,
-  doc,
-  orderBy,
-} from "firebase/firestore";
-import { query } from "express";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
 interface Pet {
@@ -29,63 +22,48 @@ type LoaderData = {
   error?: string;
 };
 
-// export async function loader({ request }: LoaderFunctionArgs) {
-//   try {
-//     const petsCollection = collection(db, "pets");
-//     const petsSnapshot = await getDocs(petsCollection);
+export async function loader({ request }: LoaderFunctionArgs) {
+  try {
+    const petsCollection = collection(db, "pets");
+    const petsSnapshot = await getDocs(petsCollection);
 
-//     // 2. แก้ไขการ map ข้อมูลให้มีทั้ง id และ petID
-//     const petsData = petsSnapshot.docs.map((doc) => ({
-//       documentID: doc.id, // Document ID จาก Firestore
-//       ...(doc.data() as Pet), // ข้อมูลอื่นๆ รวมถึง petID จากฟิลด์
-//     }));
-//     return json<LoaderData>({ pets: petsData });
-//   } catch (error) {
-//     console.error("Error fetching pets:", error);
-//     return json<LoaderData>({ pets: [], error: "Failed to load pets" });
-//   }
-// }
+    const petsData = petsSnapshot.docs.map((doc) => ({
+      id: doc.id, // 🔹 ใช้ `id` (ตัวพิมพ์เล็ก) ตรงกับ Firestore ID
+      ...(doc.data() as Pet),
+    }));
+
+    return json<LoaderData>({ pets: petsData });
+  } catch (error) {
+    console.error("Error fetching pets:", error);
+    return json<LoaderData>({ pets: [], error: "Failed to load pets" });
+  }
+}
 
 export default function MyPetList() {
-  // const { pets, error } = useLoaderData<typeof loader>();
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    async function fetchPets() {
-      try {
-        const petsCollection = collection(db, "pets");
-        const petsSnapshot = await getDocs(petsCollection);
-        const petsData = petsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Pet),
-        }));
-        setPets(petsData);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching pets:", err);
-        setError("Failed to load pets");
-        setLoading(false);
-      }
-    }
-    fetchPets();
-  }, []);
+  const { pets: initialPets, error: loaderError } =
+    useLoaderData<typeof loader>();
+  const [pets, setPets] = useState<Pet[]>(initialPets);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(loaderError || null);
   const navigate = useNavigate();
-  const handleDeletePet = async (petID: string) => {
+
+  const handleDeletePet = async (id: string) => {
     try {
       if (confirm("Are you sure you want to delete this pet?")) {
-        await deleteDoc(doc(db, "pets", petID)); // ลบเอกสาร
-        navigate(".", { replace: true });
+        await deleteDoc(doc(db, "pets", id)); // 🔹 ใช้ `id` แทน `petID`
+        setPets((prevPets) => prevPets.filter((pet) => pet.petID !== id)); // อัปเดต state
       }
     } catch (error) {
       console.error("Error deleting pet:", error);
+      setError("Failed to delete pet");
     }
   };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl text-gray-700 font-bold mb-6">Pet List</h1>
 
-      {/* {error && <p className="text-red-500">{error}</p>} */}
+      {error && <p className="text-red-500">{error}</p>}
 
       {pets.length === 0 ? (
         <p className="text-center text-gray-500">No pets available.</p>
