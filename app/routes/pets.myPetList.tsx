@@ -1,7 +1,13 @@
 /*ธวัชชัย ครุธนวม 026740491802-6*/
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Link, useLoaderData, useNavigate } from "@remix-run/react";
+import {
+  Link,
+  useLoaderData,
+  useNavigate,
+  Outlet,
+  useLocation,
+} from "@remix-run/react";
 import { db } from "~/lib/firebase";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -36,7 +42,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       };
     });
 
-    return json<LoaderData>({ pets: petsData });
+    return json({ pets: petsData });
   } catch (error) {
     console.error("Error fetching pets:", error);
     return json<LoaderData>({ pets: [], error: "Failed to load pets" });
@@ -44,11 +50,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function MyPetList() {
-  const { pets: initialPets, error: loaderError } =
-    useLoaderData<typeof loader>();
+  const { pets: initialPets } = useLoaderData<typeof loader>();
   const [pets, setPets] = useState<Pet[]>(initialPets);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(loaderError || null);
   const navigate = useNavigate();
 
   const handleDeletePet = async (petID: string) => {
@@ -59,15 +63,14 @@ export default function MyPetList() {
       }
     } catch (error) {
       console.error("Error deleting pet:", error);
-      setError("Failed to delete pet");
     }
   };
+  const location = useLocation();
+  const isDetailPage = location.pathname.startsWith("pets/myPetList");
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl text-gray-700 font-bold mb-6">Pet List</h1>
-
-      {error && <p className="text-red-500">{error}</p>}
 
       {/* กรณียังโหลดข้อมูลอยู่ */}
       {loading ? (
@@ -96,7 +99,7 @@ export default function MyPetList() {
                 <tr key={pet.petID} className="hover:bg-yellow-400">
                   <td className="py-4 px-4">
                     {pet.petPhoto ? (
-                      <Link to={`/pets/myPetList/${pet.petID}`}>
+                      <Link to={`/pets/MyPetList/${pet.petID}`}>
                         <img
                           src={pet.petPhoto}
                           alt={pet.petName}
@@ -137,6 +140,7 @@ export default function MyPetList() {
               ))}
             </tbody>
           </table>
+          {!isDetailPage && <Outlet />}
         </div>
       )}
     </div>
